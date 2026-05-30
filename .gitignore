@@ -1,0 +1,82 @@
+# =========================================================
+# Keil / ARM build output
+# =========================================================
+Desk_Light_Controller/Output/
+Desk_Light_Controller/Listing/
+Desk_Light_Controller/Listings/
+Desk_Light_Controller/Objects/
+
+# Generic build output folders
+Output/
+Listing/
+Listings/
+Objects/
+Build/
+build/
+Debug/
+Release/
+
+# =========================================================
+# Keil generated files
+# =========================================================
+*.o
+*.obj
+*.d
+*.crf
+*.lst
+*.lnp
+*.map
+*.htm
+*.build_log.htm
+*.axf
+*.elf
+*.hex
+*.bin
+*.dep
+*.iex
+
+# Keil user/local option files
+*.uvguix.*
+*.uvgui.*
+*.uvopt
+*.uvoptx
+*.uvmpw
+*.uvmpw.*
+
+# Keil backup files
+*.uvproj.bak
+*.uvprojx.bak
+*.uvopt.bak
+*.uvoptx.bak
+*.uvgui.bak
+*.uvguix.bak
+
+# =========================================================
+# Debug / simulator files
+# =========================================================
+*.dbgconf
+*.dbgconf.*
+*.scvd
+*.sim
+*.ini
+
+# =========================================================
+# Editor / OS files
+# =========================================================
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# =========================================================
+# Temporary / backup files
+# =========================================================
+*.log
+*.tmp
+*.old
+*.orig
+*.backup
+*.bak
