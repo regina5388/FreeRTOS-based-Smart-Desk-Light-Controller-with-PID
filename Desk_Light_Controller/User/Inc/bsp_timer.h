@@ -29,5 +29,6 @@ void TIM_RCC_Config(void);
 void TIM_GPIO_Config(void);
 void TIM_Output_Config(void);
 void Set_DutyCycle(TIM_TypeDef *TIMx_Periphral, u8 channel, u8 percent);
+void Set_DutyCycle_LED (u8 percent);
 
 #endif

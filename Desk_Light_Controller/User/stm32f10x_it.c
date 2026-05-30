@@ -29,6 +29,10 @@
 #include "bsp_uart.h"
 #include "bsp_adc.h"
 
+//For freeRTOS
+#include "FreeRTOS.h"
+#include "task.h"
+
 extern __IO uint16_t ADC_ConvertedValue;
 
 /** @addtogroup STM32F10x_StdPeriph_Template
@@ -112,9 +116,9 @@ void UsageFault_Handler(void)
   * @param  None
   * @retval None
   */
-void SVC_Handler(void)
-{
-}
+//void SVC_Handler(void)
+//{
+//}
 
 /**
   * @brief  This function handles Debug Monitor exception.
@@ -130,18 +134,31 @@ void DebugMon_Handler(void)
   * @param  None
   * @retval None
   */
-void PendSV_Handler(void)
-{
-}
+//void PendSV_Handler(void)
+//{
+//}
 
 /**
   * @brief  This function handles SysTick Handler.
   * @param  None
   * @retval None
   */
+extern void xPortSysTickHandler( void );
+
 void SysTick_Handler(void)
 {
-	IntCounterDecrement();
+//Make sure this works both when INCLUDE_xTaskGetSchedulerState is enabled and when it is noe
+#if (INCLUDE_xTaskGetSchedulerState == 1) 
+	if (xTaskGetSchedulerState() != taskSCHEDULER_NOT_STARTED)
+	{
+#endif
+		
+		xPortSysTickHandler();
+		
+#if (INCLUDE_xTaskGetSchedulerState == 1)
+	}
+#endif
+	
 }
 
 /******************************************************************************/

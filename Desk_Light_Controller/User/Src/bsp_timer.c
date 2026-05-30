@@ -111,3 +111,8 @@ void Set_DutyCycle(TIM_TypeDef *TIMx_Periphral, u8 channel, u8 percent)
             break;
     }
 }
+
+void Set_DutyCycle_LED (u8 percent)
+{
+	Set_DutyCycle(TIMx, 3, percent);
+}
