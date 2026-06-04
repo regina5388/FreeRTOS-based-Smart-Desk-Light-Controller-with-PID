@@ -174,7 +174,6 @@ static void Button_Task(void* parameter)
 			// Should rarely happen with portMAX_DELAY
 			xSemaphoreTake(UART_MuxSem_Handle, portMAX_DELAY);
 			printf("receive error, error code 0x%1x\n", (uint32_t)xReturn);
-			taskEXIT_CRITICAL();
 			xSemaphoreGive(UART_MuxSem_Handle);
 		}
 	}
