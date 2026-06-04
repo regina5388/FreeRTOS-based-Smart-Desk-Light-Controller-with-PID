@@ -16,13 +16,11 @@
 #define KEY2_INT_LINE 		        EXTI_Line13
 #define KEY2_INT_GPIO_PORTSOURCE  GPIO_PortSourceGPIOC
 #define KEY2_INT_GPIO_PINSOURCE   GPIO_PinSource13
-#define KEY2_IRQHandler           EXTI15_10_IRQHandler
+
 
 static void NVIC_Config(void)	
 {
 	NVIC_InitTypeDef NVIC_Struct;
-	
-	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_1);
 
 	NVIC_Struct.NVIC_IRQChannel =  KEY1_INT_IRQ;
 	NVIC_Struct.NVIC_IRQChannelCmd = ENABLE;
@@ -54,7 +52,7 @@ void EXTI_Key_Config(void)
 	
 	GPIO_InitStruct.GPIO_Pin = KEY1_INT_GPIO_PIN;
 	GPIO_InitStruct.GPIO_Speed = GPIO_Speed_50MHz;
-	GPIO_InitStruct.GPIO_Mode = GPIO_Mode_IN_FLOATING;
+	GPIO_InitStruct.GPIO_Mode = GPIO_Mode_IPU;
 	
 	GPIO_Init(KEY1_INT_GPIO_PORT, &GPIO_InitStruct);
 	
@@ -69,7 +67,7 @@ void EXTI_Key_Config(void)
 	EXTI_Struct.EXTI_LineCmd = ENABLE;
 	EXTI_Struct.EXTI_Mode = EXTI_Mode_Interrupt;
 	EXTI_Struct.EXTI_Trigger = EXTI_Trigger_Rising;
-  EXTI_Init(&EXTI_Struct);
+	EXTI_Init(&EXTI_Struct);
 
 	EXTI_Struct.EXTI_Line = KEY2_INT_LINE;
 	EXTI_Struct.EXTI_Trigger = EXTI_Trigger_Falling;

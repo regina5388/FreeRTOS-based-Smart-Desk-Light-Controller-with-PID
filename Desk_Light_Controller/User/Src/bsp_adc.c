@@ -45,8 +45,6 @@ void ADCx_Init(void){
 void ADC_NVIC_Config(void)
 {
 	NVIC_InitTypeDef NVIC_InitStruct;
-	
-	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_1);
 
 	NVIC_InitStruct.NVIC_IRQChannel = ADC_IRQ;
 	NVIC_InitStruct.NVIC_IRQChannelCmd = ENABLE;

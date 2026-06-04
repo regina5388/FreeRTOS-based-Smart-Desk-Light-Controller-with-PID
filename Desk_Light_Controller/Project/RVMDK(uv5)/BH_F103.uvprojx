@@ -534,6 +534,11 @@
           <GroupName>USER</GroupName>
           <Files>
             <File>
+              <FileName>state_fsm.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\User\Src\state_fsm.c</FilePath>
+            </File>
+            <File>
               <FileName>stm32f10x_it.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\User\stm32f10x_it.c</FilePath>
@@ -607,6 +612,11 @@
               <FileName>bsp_initialize.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\User\Src\bsp_initialize.c</FilePath>
+            </File>
+            <File>
+              <FileName>bsp_rot_encoder.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\User\Src\bsp_rot_encoder.c</FilePath>
             </File>
           </Files>
         </Group>

@@ -28,12 +28,18 @@
 #include "bsp_systick.h"
 #include "bsp_uart.h"
 #include "bsp_adc.h"
+#include "bsp_rot_encoder.h"
+#include "FreeRTOS.h"
+#include "semphr.h"
+#include "queue.h"
+
 
 //For freeRTOS
 #include "FreeRTOS.h"
 #include "task.h"
 
 extern __IO uint16_t ADC_ConvertedValue;
+extern SemaphoreHandle_t Button_BiSem_Handle;
 
 /** @addtogroup STM32F10x_StdPeriph_Template
   * @{
@@ -186,13 +192,38 @@ void KEY1_IRQHandler(void)
 
 	}
 }
-void KEY2_IRQHandler(void)	
+
+void EXTI15_10_IRQHandler(void)	
 {
 	if (EXTI_GetITStatus(KEY2_INT_LINE) != RESET)
 	{
+		// KEY2 interrupt: toggle LED and clear pending bit
 		GPIO_Toggle(LED2_GPIO_PORT, LED2_GPIO_PIN);
 		EXTI_ClearITPendingBit(KEY2_INT_LINE);
+	}
+	
+	if (EXTI_GetITStatus(ENCODER_KEY_LINE) != RESET)
+	{
+		
+		BaseType_t pxHigherPriorityTaskWoken = pdFALSE;
+		uint32_t ulReturn;
+		
+		// Enter ISR critical section
+		ulReturn = taskENTER_CRITICAL_FROM_ISR();
 
+		
+		// Wake button task by giving semaphore
+		xSemaphoreGiveFromISR(Button_BiSem_Handle, &pxHigherPriorityTaskWoken);
+		
+		// Switch context if a higher-priority task was woken
+		portYIELD_FROM_ISR(pxHigherPriorityTaskWoken);
+
+		// Clear encoder key EXTI pending bit
+		EXTI_ClearITPendingBit(ENCODER_KEY_LINE);
+
+
+		// Exit ISR critical section
+		taskEXIT_CRITICAL_FROM_ISR(ulReturn);
 	}
 }
 

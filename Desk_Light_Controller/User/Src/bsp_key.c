@@ -6,8 +6,7 @@ void KEY_GPIO_Config(void)
 		GPIO_InitTypeDef GPIO_InitStruct;
 		
 		//Clock enable
-		RCC_APB2PeriphClockCmd(KEY1_GPIO_CLK|
-													 KEY2_GPIO_CLK , ENABLE);
+		RCC_APB2PeriphClockCmd(KEY1_GPIO_CLK|KEY2_GPIO_CLK , ENABLE);
 
 		
 		GPIO_InitStruct.GPIO_Pin = KEY1_GPIO_PIN;

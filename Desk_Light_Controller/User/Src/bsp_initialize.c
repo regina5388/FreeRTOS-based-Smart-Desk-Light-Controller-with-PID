@@ -10,5 +10,6 @@ void BSP_Init(void)
     TIM_Output_Config();
 
     UART_Config();    /* Initialize USART for printf */
-
+	RotEncoder_Config();
+	FSM_init();
 }

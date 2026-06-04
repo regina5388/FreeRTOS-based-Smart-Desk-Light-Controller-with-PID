@@ -12,9 +12,12 @@
 #include "ff.h"
 #include "bsp_adc.h"
 #include "bsp_timer.h"
+#include "bsp_rot_encoder.h" 
 #include "FreeRTOS.h"
 #include "task.h"
 #include "queue.h"
+#include "semphr.h"
+#include "state_fsm.h"
 
 
 void BSP_Init(void);

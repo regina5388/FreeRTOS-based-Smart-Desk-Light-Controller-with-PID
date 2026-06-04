@@ -5,8 +5,6 @@
 static void NVIC_Config(void)
 {
 	NVIC_InitTypeDef NVIC_Struct;
-	
-	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_1);
 
 	NVIC_Struct.NVIC_IRQChannel =  DEBUG_USART_IRQ;
 	NVIC_Struct.NVIC_IRQChannelCmd = ENABLE;
