@@ -2,6 +2,17 @@
 #define STATE_FSM
 
 #include "bsp_uart.h"
+#include "FreeRTOS.h"
+#include "task.h"
+#include "queue.h"
+#include "semphr.h"
+#include "event_groups.h"
+#include "bsp_rot_encoder.h"
+
+#define INTIALIZE_DONE_EVENT 	(0x01 << 0)
+#define BUTTON_PRESSED_EVENT	(0x01 << 1)
+#define SENSOR_UPDATE_EVENT 	(0x01 << 2)
+#define ENCODER_ROTATE_EVENT 	(0x01 << 3)
 
 typedef enum {
 	STATE_INIT,
@@ -13,7 +24,7 @@ typedef enum {
 }SystemState;
 
 void FSM_init(void);
-void FSM_run(void);
+void FSM_run(EventBits_t r_event);
 
 void FSM_setState(SystemState state);
 SystemState FSM_getState(void);

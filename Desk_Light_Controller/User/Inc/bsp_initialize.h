@@ -18,6 +18,7 @@
 #include "queue.h"
 #include "semphr.h"
 #include "state_fsm.h"
+#include "event_groups.h"
 
 
 void BSP_Init(void);

@@ -2,13 +2,28 @@
 
 static SystemState current_state = STATE_ERROR;
 
+static uint16_t current_lux = 0;
+static uint16_t target_lux = 500;
+
+static int16_t manual_brightness = 0;   // user-set brightness
+static int16_t current_brightness = 0;   // actual commanded PWM 0~100
+
+static int16_t encoder_delta = 0;
+
+extern SemaphoreHandle_t UART_MuxSem_Handle;
+extern QueueHandle_t Brightness_Queue_Handle;
+extern QueueHandle_t Encoder_Delta_Queue_Handle;
+extern QueueHandle_t Lux_Queue_Handle;
+
 void FSM_init(void)
 {
 	current_state = STATE_INIT;
 }
 
-void FSM_run(void)
+void FSM_run(EventBits_t r_event)
 {
+	BaseType_t xReturn = pdTRUE;
+	
 	switch(current_state)
 	{
 		case STATE_INIT:
@@ -17,12 +32,92 @@ void FSM_run(void)
 		case STATE_SETF_TEST:
 			break;
 		case STATE_IDLE:
+			if (r_event & BUTTON_PRESSED_EVENT)
+			{
+				current_state = STATE_MANUAL_CONTROL;
+			}
+			
+			xSemaphoreTake(UART_MuxSem_Handle, portMAX_DELAY);
+			printf("IDLE ! \r\n");
+			xSemaphoreGive(UART_MuxSem_Handle);
 			break;
 		case STATE_AUTO_CONTROL:
+			//receive lux from sensor, Call pid, send queue of PWM to LED
+			
+			if (r_event & BUTTON_PRESSED_EVENT)
+			{
+				current_state = STATE_MANUAL_CONTROL;
+				manual_brightness = current_brightness;
+			}
+			
+			if (r_event & SENSOR_UPDATE_EVENT)
+			{
+				xReturn = xQueueReceive( Lux_Queue_Handle,
+									&current_lux,
+									0 );
+			}
+		
+			xSemaphoreTake(UART_MuxSem_Handle, portMAX_DELAY);
+			printf("Auto ! \r\n");
+			xSemaphoreGive(UART_MuxSem_Handle);
+			
+			if(xReturn == pdTRUE)
+			{
+					
+					current_brightness = current_lux;
+					//***********current_breghtness = pid(current_lux)***********//
+					xReturn = xQueueOverwrite( Brightness_Queue_Handle,
+									&current_brightness);
+			}
+			
+
+			
 			break;
 		case STATE_MANUAL_CONTROL:
+			//receive delta from encoder, calculate brightness, send queue of PWM to LED
+		
+			if (r_event & BUTTON_PRESSED_EVENT)
+			{
+				current_state = STATE_AUTO_CONTROL;
+				current_brightness = manual_brightness;
+			}
+		
+			if (r_event & ENCODER_ROTATE_EVENT)
+			{
+				xReturn = xQueueReceive( Encoder_Delta_Queue_Handle,
+									&encoder_delta,
+									0 );
+				if(xReturn == pdTRUE)
+				{
+					manual_brightness += encoder_delta * STEP;
+		
+					if (manual_brightness > 100)
+						manual_brightness = 100;
+					
+					if (manual_brightness < 0)
+						manual_brightness = 0;
+					
+					current_brightness = manual_brightness;
+					
+						xReturn = xQueueOverwrite( Brightness_Queue_Handle,
+										&current_brightness);
+				}
+				
+				xSemaphoreTake(UART_MuxSem_Handle, portMAX_DELAY);
+				printf("delta=%d\r\n", encoder_delta);
+				xSemaphoreGive(UART_MuxSem_Handle);
+			}
+			
+			
+			
+		
 			break;
 		case STATE_ERROR:
+			
+			xSemaphoreTake(UART_MuxSem_Handle, portMAX_DELAY);
+			printf("Error! \r\n");
+			xSemaphoreGive(UART_MuxSem_Handle);
+			
 			break;
 	}
 }
@@ -37,3 +132,4 @@ SystemState FSM_getState(void)
 {
 	return current_state;
 }
+

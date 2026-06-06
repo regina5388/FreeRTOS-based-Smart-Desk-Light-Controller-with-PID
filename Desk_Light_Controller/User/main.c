@@ -1,13 +1,13 @@
 #include "bsp_initialize.h"
 
-#define QUEUE_LEN 		4
-#define QUEUE_SIZE 		4
+#define QUEUE_LEN 		1
 
 static StackType_t Idle_Task_Stack[configMINIMAL_STACK_SIZE];
 static StackType_t Timer_Task_Stack[configTIMER_TASK_STACK_DEPTH];
 static StackType_t LED_Task_Stack[configTIMER_TASK_STACK_DEPTH];
 static StackType_t Sensor_Task_Stack[configTIMER_TASK_STACK_DEPTH];
 static StackType_t Button_Task_Stack[configTIMER_TASK_STACK_DEPTH];
+static StackType_t Encoder_Task_Stack[configTIMER_TASK_STACK_DEPTH];
 static StackType_t FSM_Task_Stack[configTIMER_TASK_STACK_DEPTH];
 
 static StaticTask_t Idle_Task_TCB;
@@ -15,18 +15,24 @@ static StaticTask_t Timer_Task_TCB;
 static StaticTask_t LED_Task_TCB;
 static StaticTask_t Sensor_Task_TCB;
 static StaticTask_t Button_Task_TCB;
+static StaticTask_t Encoder_Task_TCB;
 static StaticTask_t FSM_Task_TCB;
-
 
 static TaskHandle_t AppTaskCreate_Handle = NULL;
 static TaskHandle_t LED_Task_Handle		 = NULL;
 static TaskHandle_t Sensor_Task_Handle	 = NULL;
 static TaskHandle_t Button_Task_Handle	 = NULL;
 static TaskHandle_t FSM_Task_Handle	 	 = NULL;
+static TaskHandle_t Encoder_Task_Handle	 = NULL;
 
-static QueueHandle_t Brightness_Queue_Handle = NULL;
+ QueueHandle_t Brightness_Queue_Handle = NULL;
+ QueueHandle_t Encoder_Delta_Queue_Handle = NULL;
+ QueueHandle_t Lux_Queue_Handle = NULL;
+
 SemaphoreHandle_t Button_BiSem_Handle = NULL;
 SemaphoreHandle_t UART_MuxSem_Handle = NULL;
+
+static EventGroupHandle_t FSM_Event_Handle = NULL;
 
 void Delay(__IO uint32_t nCount);
 void vApplicationGetIdleTaskMemory(StaticTask_t **ppxIdleTaskTCBBuffer,
@@ -40,6 +46,8 @@ void vApplicationGetTimerTaskMemory(StaticTask_t **ppxIdleTaskTCBBuffer,
 static void LED_Task(void* parameter);
 static void Sensor_Task(void* parameter);
 static void Button_Task(void* parameter);
+static void Encoder_Task(void* parameter);
+static void FSM_Task(void* parameter);
 static void AppTaskCreate_Task(void* parameter);
 	
 int main(void)
@@ -67,45 +75,70 @@ int main(void)
 
 static void LED_Task(void* parameter)
 {
-	BaseType_t xReturn = pdTRUE;
-	uint32_t Brightness_buf;
+	BaseType_t xReturn = NULL;
+	int16_t Brightness_buf;
 	while(1)
 	{
 		xReturn = xQueueReceive( Brightness_Queue_Handle,
 							  &Brightness_buf,
-							  1000 );
+							  0);
+		if(xReturn != NULL)
+		{
+			xSemaphoreTake(UART_MuxSem_Handle, portMAX_DELAY);
+			printf("Receive Brightness ! \r\n");
+			xSemaphoreGive(UART_MuxSem_Handle);
+		}
 		
 		Set_DutyCycle_LED(Brightness_buf);
+		vTaskDelay(pdMS_TO_TICKS(20));
 	}
 	
 }
 
 static void Sensor_Task(void* parameter)
 {
-	BaseType_t xReturn = pdTRUE;
-	uint32_t Brightness_1 = 0;
-	uint32_t Brightness_2 = 20;
-	uint32_t Brightness_3 = 100;
+	BaseType_t xReturn = NULL;
+	uint16_t Lux_1 = 0;
+	uint16_t Lux_2 = 20;
+	uint16_t Lux_3 = 100;
 	
 	while(1)
 	{
-		printf("Send Brightness\r\n");
-		xReturn = xQueueSend( Brightness_Queue_Handle,
-							  &Brightness_1,
-							  0 );
-		vTaskDelay(500); //Delay 500 Tick
+		if(FSM_getState() == STATE_AUTO_CONTROL)
+		{
+			
+			
+			xReturn = xQueueOverwrite( Lux_Queue_Handle,
+								  &Lux_1);
+			xEventGroupSetBits(FSM_Event_Handle, SENSOR_UPDATE_EVENT);
+			
+			vTaskDelay(500); //Delay 500 Tick
+			
+			xReturn = xQueueOverwrite( Lux_Queue_Handle,
+								  &Lux_2);
+			
+			xEventGroupSetBits(FSM_Event_Handle, SENSOR_UPDATE_EVENT);
+			vTaskDelay(500); //Delay 500 Tick
+			
+			xReturn = xQueueOverwrite( Lux_Queue_Handle,
+								  &Lux_3);
+			
+			xEventGroupSetBits(FSM_Event_Handle, SENSOR_UPDATE_EVENT);
+			vTaskDelay(500); //Delay 500 Tick
+			
+			if(xReturn != NULL)
+			{
+				xSemaphoreTake(UART_MuxSem_Handle, portMAX_DELAY);
+				printf("Sent Brightness ! \r\n");
+				xSemaphoreGive(UART_MuxSem_Handle);
+			}
 		
-		xReturn = xQueueSend( Brightness_Queue_Handle,
-							  &Brightness_2,
-							  0 );
-		vTaskDelay(500); //Delay 500 Tick
+		}
 		
-		xReturn = xQueueSend( Brightness_Queue_Handle,
-							  &Brightness_3,
-							  0 );
-		vTaskDelay(500); //Delay 500 Tick
-
-		
+		else
+		{
+			 vTaskDelay(pdMS_TO_TICKS(100));
+		}
 		
 	}
 	
@@ -129,10 +162,6 @@ static void Button_Task(void* parameter)
 			// Confirm button is still pressed
 			if (GPIO_ReadInputDataBit(ENCODER_KEY_GPIO_PORT, ENCODER_KEY_GPIO_PIN) == BUTTON_ON)
 			{
-				// Press confirmed
-				xSemaphoreTake(UART_MuxSem_Handle, portMAX_DELAY);
-				printf("button pressed\r\n");
-				xSemaphoreGive(UART_MuxSem_Handle);
 				
 				// Wait for button release
 				while (GPIO_ReadInputDataBit(ENCODER_KEY_GPIO_PORT, ENCODER_KEY_GPIO_PIN) == BUTTON_ON)
@@ -142,30 +171,9 @@ static void Button_Task(void* parameter)
 				
 				// Debounce release
 				vTaskDelay(pdMS_TO_TICKS(20));
-				
 
 				// Release detected
-				xSemaphoreTake(UART_MuxSem_Handle, portMAX_DELAY);
-				printf("state %d \r\n", FSM_getState());
-				xSemaphoreGive(UART_MuxSem_Handle);
-				
-				if(FSM_getState()!= STATE_ERROR)
-				{
-					
-					if((FSM_getState() == STATE_AUTO_CONTROL)|| (FSM_getState() == STATE_IDLE))
-						FSM_setState(STATE_MANUAL_CONTROL);
-					else if (FSM_getState() == STATE_MANUAL_CONTROL)
-						FSM_setState(STATE_AUTO_CONTROL);
-					
-				}
-				else
-				{	xSemaphoreTake(UART_MuxSem_Handle, portMAX_DELAY);
-					printf("Error! \r\n");
-					xSemaphoreGive(UART_MuxSem_Handle);
-				}
-					
-
-		
+				xEventGroupSetBits(FSM_Event_Handle, BUTTON_PRESSED_EVENT);
 				
 			}
 		}
@@ -179,12 +187,46 @@ static void Button_Task(void* parameter)
 	}
 }
 
-static void FSM_Task(void* parameter)
+static void Encoder_Task(void* parameter)
 {
+	int16_t new_count = 0;
+	int16_t delta_count = 0;
+	int16_t prev_count = 0;
+	
+	BaseType_t xReturn = pdTRUE;
+	
 	while(1)
 	{
-		FSM_run();
+		new_count = RotEncoder_getCounter();
+        delta_count = prev_count - new_count;
+		prev_count = new_count;
 		
+		if (delta_count != 0)
+		{
+			//Notify FSM
+			xReturn = xQueueSend( Encoder_Delta_Queue_Handle,
+								&delta_count,
+								0 );
+			
+			xEventGroupSetBits(FSM_Event_Handle, ENCODER_ROTATE_EVENT);
+		}
+		
+		vTaskDelay(pdMS_TO_TICKS(10));
+	}
+}
+
+static void FSM_Task(void* parameter)
+{
+	EventBits_t r_event;
+	while(1)
+	{
+		r_event = xEventGroupWaitBits( FSM_Event_Handle,
+									   BUTTON_PRESSED_EVENT|ENCODER_ROTATE_EVENT|SENSOR_UPDATE_EVENT,
+									   pdTRUE,
+									   pdFALSE,
+									   portMAX_DELAY );
+		FSM_run(r_event);
+			
 		vTaskDelay(pdMS_TO_TICKS(10));
 	}
 }
@@ -196,6 +238,10 @@ static void AppTaskCreate_Task(void* parameter)
 	
 	taskENTER_CRITICAL();
 	
+	FSM_Event_Handle = xEventGroupCreate();
+	if(FSM_Event_Handle != NULL)
+		printf("FSM EventGroup succesfully created\r\n");
+	
 	UART_MuxSem_Handle = xSemaphoreCreateMutex();
 	if(UART_MuxSem_Handle != NULL)
 		printf("UART Semaphore succesfully created\r\n");
@@ -206,9 +252,20 @@ static void AppTaskCreate_Task(void* parameter)
 		printf("Button Semaphore succesfully created\r\n");
 	
 	Brightness_Queue_Handle = xQueueCreate((UBaseType_t)QUEUE_LEN,
-										   (UBaseType_t)QUEUE_SIZE);
+										   sizeof(int16_t));
 	if(Brightness_Queue_Handle != NULL)
 		printf("Brightness Queue succesfully created\r\n");
+	
+	Encoder_Delta_Queue_Handle = xQueueCreate((UBaseType_t)QUEUE_LEN,
+											sizeof(int16_t));
+	if(Encoder_Delta_Queue_Handle != NULL)
+		printf("Encoder Delta Queue succesfully created\r\n");
+	
+	Lux_Queue_Handle = xQueueCreate((UBaseType_t)QUEUE_LEN,
+									sizeof(uint16_t));
+	if(Lux_Queue_Handle != NULL)
+		printf("Lux Queue succesfully created\r\n");
+	
 	
 	LED_Task_Handle = xTaskCreateStatic( LED_Task,
 										(const char*) "LED_Task",
@@ -234,6 +291,14 @@ static void AppTaskCreate_Task(void* parameter)
 										Button_Task_Stack,
 										&Button_Task_TCB);
 										
+	Encoder_Task_Handle = xTaskCreateStatic( Encoder_Task,
+										(const char*) "Encoder_Task",
+										(u32)configMINIMAL_STACK_SIZE,
+										(void*) NULL,
+										(UBaseType_t)10,
+										Encoder_Task_Stack,
+										&Encoder_Task_TCB);
+										
 	FSM_Task_Handle = xTaskCreateStatic( FSM_Task,
 										(const char*) "FSM_Task",
 										(u32)configMINIMAL_STACK_SIZE,
@@ -243,7 +308,7 @@ static void AppTaskCreate_Task(void* parameter)
 										&FSM_Task_TCB);
 										
 										
-	if (LED_Task_Handle != NULL && Sensor_Task_Handle != NULL && Button_Task_Handle != NULL)
+	if (LED_Task_Handle != NULL && Sensor_Task_Handle != NULL && Button_Task_Handle != NULL && FSM_Task_Handle != NULL && Encoder_Task_Handle != NULL)
 	printf("Task Created\r\n");
 	else										
 	printf("Task Not Created\r\n");

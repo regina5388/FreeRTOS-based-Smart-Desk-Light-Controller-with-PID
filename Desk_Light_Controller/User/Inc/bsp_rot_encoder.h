@@ -15,6 +15,24 @@
 #define BUTTON_ON  0
 #define BUTTON_OFF 1
 
+#define    TIM_ENCODER_APBxClock_FUN            RCC_APB2PeriphClockCmd
+#define    TIMx_ENCODER                  		TIM8
+#define    TIM_ENCODER_CLK                      RCC_APB2Periph_TIM8
+
+#define    TIM_ENCODER_GPIO_APBxClock_FUN       RCC_APB2PeriphClockCmd
+
+#define TIM_ENCODER_C1_GPIO_PORT 	GPIOC
+#define TIM_ENCODER_C1_GPIO_CLK 	RCC_APB2Periph_GPIOC
+#define TIM_ENCODER_C1_GPIO_PIN 	GPIO_Pin_6
+
+#define TIM_ENCODER_C2_GPIO_PORT 	GPIOC
+#define TIM_ENCODER_C2_GPIO_CLK 	RCC_APB2Periph_GPIOC
+#define TIM_ENCODER_C2_GPIO_PIN 	GPIO_Pin_7
+
+#define STEP 5
+
 void RotEncoder_Config (void);
+uint16_t RotEncoder_getCounter(void);
+
 
 #endif
