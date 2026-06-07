@@ -1,4 +1,5 @@
-## 2026-05-24–2026-06-07 — Realized Basic Functions
+<details>
+<summary><h2>2026-05-24–2026-06-07 — Realized Basic Functions</h2></summary>
 
 ### Goal
 
@@ -10,6 +11,37 @@ The main goal during this period was to move the project from simple peripheral 
 
 ### Work Done
 
+- Set up basic LED brightness control using STM32 timer PWM.
+- Integrated FreeRTOS into the STM32 project.
+- Created the initial FreeRTOS task structure.
+- Designed an event-driven FSM instead of continuously polling states.
+- Added basic system states:
+  - `STATE_INIT`
+  - `STATE_IDLE`
+  - `STATE_AUTO_CONTROL`
+  - `STATE_MANUAL_CONTROL`
+  - `STATE_FOCUS`
+  - `STATE_BREAK`
+  - `STATE_ERROR`
+- Implemented manual brightness control using a rotary encoder.
+- Added brightness limiting between `0` and `100`.
+- Added EventGroup events for FSM communication:
+  - `BUTTON_PRESSED_EVENT`
+  - `SENSOR_UPDATE_EVENT`
+  - `ENCODER_ROTATE_EVENT`
+  - `FOCUS_TIMEOUT_EVENT`
+  - `BREAK_TIMEOUT_EVENT`
+- Added FreeRTOS software timers for Pomodoro-style focus mode:
+  - Focus timer
+  - Break timer
+- Used static allocation for software timers.
+- Added timer callbacks that post timeout events to the FSM.
+- Added UART debug logs to verify timer behavior.
+- Verified shortened test durations:
+  - Focus: `25 s`
+  - Break: `5 s`
+
+---
 
 ### Problems Met
 
@@ -19,7 +51,7 @@ At the beginning, different PWM duty cycles were tested manually, but the LED br
 
 This required checking whether the PWM output was configured correctly and whether the duty cycle update function was actually working.
 
-Problem was AFIO clock not enabled
+The problem was that the AFIO clock was not enabled.
 
 ---
 
@@ -60,8 +92,6 @@ sizeof(int16_t)
 because the queue copies data by byte size.
 
 ---
-
-
 
 ### Design Decisions
 
@@ -168,3 +198,5 @@ This confirms that the software timers work correctly in the current test config
 - Add automatic brightness control using a light sensor.
 - Add PID logic for smoother automatic brightness adjustment.
 - Add UART CLI commands for runtime configuration.
+
+</details>
