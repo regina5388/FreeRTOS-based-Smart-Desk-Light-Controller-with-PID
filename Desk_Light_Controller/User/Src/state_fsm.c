@@ -15,6 +15,11 @@ extern QueueHandle_t Brightness_Queue_Handle;
 extern QueueHandle_t Encoder_Delta_Queue_Handle;
 extern QueueHandle_t Lux_Queue_Handle;
 
+extern TimerHandle_t FocusTimer_SWTimer_Handle;
+extern TimerHandle_t BreakTimer_SWTimer_Handle;
+
+
+	
 void FSM_init(void)
 {
 	current_state = STATE_INIT;
@@ -34,7 +39,7 @@ void FSM_run(EventBits_t r_event)
 		case STATE_IDLE:
 			if (r_event & BUTTON_PRESSED_EVENT)
 			{
-				current_state = STATE_MANUAL_CONTROL;
+				current_state = STATE_AUTO_CONTROL;
 			}
 			
 			xSemaphoreTake(UART_MuxSem_Handle, portMAX_DELAY);
@@ -78,8 +83,17 @@ void FSM_run(EventBits_t r_event)
 		
 			if (r_event & BUTTON_PRESSED_EVENT)
 			{
-				current_state = STATE_AUTO_CONTROL;
+				current_state = STATE_FOCUS;
 				current_brightness = manual_brightness;
+				
+				focus_start_tick = xTaskGetTickCount();
+				xTimerReset(FocusTimer_SWTimer_Handle, 0);
+				
+				xSemaphoreTake(UART_MuxSem_Handle, portMAX_DELAY);
+				printf("Enter FOCUS, tick = %d\r\n", focus_start_tick);
+				xSemaphoreGive(UART_MuxSem_Handle);
+				
+				
 			}
 		
 			if (r_event & ENCODER_ROTATE_EVENT)
@@ -108,8 +122,68 @@ void FSM_run(EventBits_t r_event)
 				xSemaphoreGive(UART_MuxSem_Handle);
 			}
 			
+			break;
+		case STATE_FOCUS:
+			//Add pid logic afterwards?
 			
 			
+		
+			if (r_event & BUTTON_PRESSED_EVENT)
+			{
+				current_state = STATE_AUTO_CONTROL;
+				xTimerStop(FocusTimer_SWTimer_Handle, 0);
+			}
+			
+				xSemaphoreTake(UART_MuxSem_Handle, portMAX_DELAY);
+				printf("FOCUS!\r\n");
+				xSemaphoreGive(UART_MuxSem_Handle);
+			
+			if (r_event & FOCUS_TIMEOUT_EVENT)
+			{	
+				
+				current_state = STATE_BREAK;
+				
+				break_start_tick = xTaskGetTickCount();
+				
+				xTimerStop(FocusTimer_SWTimer_Handle, 0);
+				xTimerReset(BreakTimer_SWTimer_Handle, 0);
+				
+				xSemaphoreTake(UART_MuxSem_Handle, portMAX_DELAY);
+				printf("Enter BREAK, tick = %d\r\n", break_start_tick);
+				xSemaphoreGive(UART_MuxSem_Handle);
+				//Blink Lights for hints
+			}
+		
+			break;
+		
+		case STATE_BREAK:
+			//Add pid logic afterwards?
+			if (r_event & BUTTON_PRESSED_EVENT)
+			{
+				current_state = STATE_AUTO_CONTROL;
+				xTimerStop(BreakTimer_SWTimer_Handle, 0);
+
+			}
+			
+				xSemaphoreTake(UART_MuxSem_Handle, portMAX_DELAY);
+				printf("BREAK!\r\n");
+				xSemaphoreGive(UART_MuxSem_Handle);
+			
+			if (r_event & BREAK_TIMEOUT_EVENT)
+			{
+				focus_start_tick = xTaskGetTickCount();
+				
+				current_state = STATE_FOCUS;
+				
+				xTimerReset(FocusTimer_SWTimer_Handle, 0);
+				xTimerStop(BreakTimer_SWTimer_Handle, 0);
+				
+				xSemaphoreTake(UART_MuxSem_Handle, portMAX_DELAY);
+				printf("Enter FOCUS, tick = %d\r\n", focus_start_tick);
+				xSemaphoreGive(UART_MuxSem_Handle);
+				
+				//Blink Lights for hints
+			}
 		
 			break;
 		case STATE_ERROR:

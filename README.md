@@ -8,6 +8,12 @@ The project is still under development. The current focus is to build a clean RT
 
 ---
 
+## Development Log
+
+A daily development log is available here:
+
+[Development Log](docs/development_log.md)
+
 ## Current Features
 
 - FreeRTOS task-based software structure

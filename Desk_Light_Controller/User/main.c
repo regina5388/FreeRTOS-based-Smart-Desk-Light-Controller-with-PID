@@ -1,6 +1,10 @@
 #include "bsp_initialize.h"
 
-#define QUEUE_LEN 		1
+#define QUEUE_LEN 		(1)
+
+#define FOCUS_TIME_MS 	(25UL * 1000UL)
+#define BREAK_TIME_MS 	(5UL * 1000UL)
+
 
 static StackType_t Idle_Task_Stack[configMINIMAL_STACK_SIZE];
 static StackType_t Timer_Task_Stack[configTIMER_TASK_STACK_DEPTH];
@@ -18,6 +22,9 @@ static StaticTask_t Button_Task_TCB;
 static StaticTask_t Encoder_Task_TCB;
 static StaticTask_t FSM_Task_TCB;
 
+static StaticTimer_t Focus_Timer_TCB;
+static StaticTimer_t Break_Timer_TCB;
+
 static TaskHandle_t AppTaskCreate_Handle = NULL;
 static TaskHandle_t LED_Task_Handle		 = NULL;
 static TaskHandle_t Sensor_Task_Handle	 = NULL;
@@ -25,6 +32,9 @@ static TaskHandle_t Button_Task_Handle	 = NULL;
 static TaskHandle_t FSM_Task_Handle	 	 = NULL;
 static TaskHandle_t Encoder_Task_Handle	 = NULL;
 
+ TimerHandle_t FocusTimer_SWTimer_Handle = NULL;
+ TimerHandle_t BreakTimer_SWTimer_Handle = NULL;
+ 
  QueueHandle_t Brightness_Queue_Handle = NULL;
  QueueHandle_t Encoder_Delta_Queue_Handle = NULL;
  QueueHandle_t Lux_Queue_Handle = NULL;
@@ -33,6 +43,14 @@ SemaphoreHandle_t Button_BiSem_Handle = NULL;
 SemaphoreHandle_t UART_MuxSem_Handle = NULL;
 
 static EventGroupHandle_t FSM_Event_Handle = NULL;
+
+#if (TIMER_DEBUG == 1)
+TickType_t focus_start_tick = 0;
+TickType_t break_start_tick = 0;
+TickType_t focus_timeout_tick = 0;
+TickType_t break_timeout_tick = 0;
+#endif
+
 
 void Delay(__IO uint32_t nCount);
 void vApplicationGetIdleTaskMemory(StaticTask_t **ppxIdleTaskTCBBuffer,
@@ -49,6 +67,8 @@ static void Button_Task(void* parameter);
 static void Encoder_Task(void* parameter);
 static void FSM_Task(void* parameter);
 static void AppTaskCreate_Task(void* parameter);
+static void FocusTimer_SWTimer_Callback(void *parameter);
+static void BreakTimer_SWTimer_Callback(void *parameter);
 	
 int main(void)
 {
@@ -72,6 +92,29 @@ int main(void)
     for (;;);
 }
 
+static void FocusTimer_SWTimer_Callback(void *parameter)
+{
+	focus_timeout_tick = xTaskGetTickCount();
+	xEventGroupSetBits(FSM_Event_Handle, FOCUS_TIMEOUT_EVENT);
+	
+	xSemaphoreTake(UART_MuxSem_Handle, portMAX_DELAY);
+	printf("FOCUS timeout, tick = %d, elapsed = %d ms\r\n",
+           focus_timeout_tick,
+           (focus_timeout_tick - focus_start_tick) * portTICK_PERIOD_MS);
+	xSemaphoreGive(UART_MuxSem_Handle);
+}
+
+static void BreakTimer_SWTimer_Callback(void *parameter)
+{
+	break_timeout_tick = xTaskGetTickCount();
+	xEventGroupSetBits(FSM_Event_Handle, BREAK_TIMEOUT_EVENT);
+	
+	xSemaphoreTake(UART_MuxSem_Handle, portMAX_DELAY);
+	printf("BREAK timeout, tick = %d, elapsed = %d ms\r\n",
+	  break_timeout_tick,
+	   (break_timeout_tick - break_start_tick) * portTICK_PERIOD_MS);
+	xSemaphoreGive(UART_MuxSem_Handle);
+}
 
 static void LED_Task(void* parameter)
 {
@@ -221,7 +264,7 @@ static void FSM_Task(void* parameter)
 	while(1)
 	{
 		r_event = xEventGroupWaitBits( FSM_Event_Handle,
-									   BUTTON_PRESSED_EVENT|ENCODER_ROTATE_EVENT|SENSOR_UPDATE_EVENT,
+									   BUTTON_PRESSED_EVENT|ENCODER_ROTATE_EVENT|SENSOR_UPDATE_EVENT|FOCUS_TIMEOUT_EVENT|BREAK_TIMEOUT_EVENT,
 									   pdTRUE,
 									   pdFALSE,
 									   portMAX_DELAY );
@@ -237,6 +280,26 @@ static void AppTaskCreate_Task(void* parameter)
 	BaseType_t xReturn = pdPASS;
 	
 	taskENTER_CRITICAL();
+	
+	FocusTimer_SWTimer_Handle = xTimerCreateStatic(
+                                "Focus Timer",
+                                pdMS_TO_TICKS(FOCUS_TIME_MS),
+                                pdFALSE,
+                                NULL,
+                                FocusTimer_SWTimer_Callback,
+                                &Focus_Timer_TCB);
+	if(FocusTimer_SWTimer_Handle != NULL)
+		printf("Focus Timer succesfully created\r\n");
+	
+	BreakTimer_SWTimer_Handle = xTimerCreateStatic(
+                                "Break Timer",
+                                pdMS_TO_TICKS(BREAK_TIME_MS),
+                                pdFALSE,
+                                NULL,
+                                BreakTimer_SWTimer_Callback,
+                                &Break_Timer_TCB);
+	if(BreakTimer_SWTimer_Handle != NULL)
+		printf("Break Timer succesfully created\r\n");
 	
 	FSM_Event_Handle = xEventGroupCreate();
 	if(FSM_Event_Handle != NULL)
