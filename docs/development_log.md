@@ -200,3 +200,41 @@ This confirms that the software timers work correctly in the current test config
 - Add UART CLI commands for runtime configuration.
 
 </details>
+
+<details>
+<summary><h2>2026-06-21</h2></summary>
+### Goal
+
+I2C sensor reading 
+
+---
+
+<p align="center">
+  <img src="docs/images/bh1750_measurement_procedure.png" width="700">
+</p>
+
+<p align="center">
+  <b>Figure 1. BH1750 measurement state transition procedure</b>
+</p>
+
+### Work Done
+
+- I2C communication set up is done
+- implemented sensor task directly sending lux to fsm
+
+---
+
+### Next Steps
+
+- Refactor state-entry logic into helper functions, such as:
+  - `Enter_Focus_State()`
+  - `Enter_Break_State()`
+  - `Enter_Auto_State()`
+  - `Enter_Manual_State()`
+- Add brightness behavior for Focus and Break modes.
+- Add automatic brightness control using a light sensor.
+- Add PID logic for smoother automatic brightness adjustment.
+- Add UART CLI commands for runtime configuration.
+- Lux calculation error correction
+
+</details>

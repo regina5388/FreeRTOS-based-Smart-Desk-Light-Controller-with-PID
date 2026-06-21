@@ -12,4 +12,5 @@ void BSP_Init(void)
     UART_Config();    /* Initialize USART for printf */
 	RotEncoder_Config();
 	FSM_init();
+	I2C_GPIO_Config();
 }

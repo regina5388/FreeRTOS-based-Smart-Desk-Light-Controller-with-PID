@@ -19,6 +19,7 @@
 #include "semphr.h"
 #include "state_fsm.h"
 #include "event_groups.h"
+#include "bsp_i2c_light_sensor.h"
 
 
 

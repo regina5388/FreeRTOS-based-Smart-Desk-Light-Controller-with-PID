@@ -140,46 +140,47 @@ static void LED_Task(void* parameter)
 
 static void Sensor_Task(void* parameter)
 {
-	BaseType_t xReturn = NULL;
-	uint16_t Lux_1 = 0;
-	uint16_t Lux_2 = 20;
-	uint16_t Lux_3 = 100;
+	BaseType_t xReturn = pdFAIL;
+	
+	float lux = 0.0f;
+	uint8_t sensor_on = 0;
 	
 	while(1)
 	{
 		if(FSM_getState() == STATE_AUTO_CONTROL)
 		{
-			
-			
-			xReturn = xQueueOverwrite( Lux_Queue_Handle,
-								  &Lux_1);
-			xEventGroupSetBits(FSM_Event_Handle, SENSOR_UPDATE_EVENT);
-			
-			vTaskDelay(500); //Delay 500 Tick
-			
-			xReturn = xQueueOverwrite( Lux_Queue_Handle,
-								  &Lux_2);
-			
-			xEventGroupSetBits(FSM_Event_Handle, SENSOR_UPDATE_EVENT);
-			vTaskDelay(500); //Delay 500 Tick
-			
-			xReturn = xQueueOverwrite( Lux_Queue_Handle,
-								  &Lux_3);
-			
-			xEventGroupSetBits(FSM_Event_Handle, SENSOR_UPDATE_EVENT);
-			vTaskDelay(500); //Delay 500 Tick
-			
-			if(xReturn != NULL)
+			if(sensor_on == 0)
 			{
-				xSemaphoreTake(UART_MuxSem_Handle, portMAX_DELAY);
-				printf("Sent Brightness ! \r\n");
-				xSemaphoreGive(UART_MuxSem_Handle);
+				LIGHT_SENSOR_Init();
+				vTaskDelay(pdMS_TO_TICKS(180));
+				sensor_on = 1;
 			}
-		
+			
+			if(LIGHT_SENSOR_ReadLux(&lux)== 1) 
+			{
+				xReturn = xQueueOverwrite( Lux_Queue_Handle,
+								  &lux);
+				
+				if(xReturn == pdPASS)
+				{
+					xEventGroupSetBits(FSM_Event_Handle, SENSOR_UPDATE_EVENT);
+					
+					xSemaphoreTake(UART_MuxSem_Handle, portMAX_DELAY);
+					printf("Sent lux: %d lx\r\n", (uint16_t)lux);
+					xSemaphoreGive(UART_MuxSem_Handle);
+				}
+			
+			}
+			vTaskDelay(pdMS_TO_TICKS(180));		
 		}
 		
 		else
 		{
+			if(sensor_on == 1)
+			{
+				LIGHT_SENSOR_PowerDown();
+				sensor_on = 0;
+			}
 			 vTaskDelay(pdMS_TO_TICKS(100));
 		}
 		

@@ -618,6 +618,16 @@
               <FileType>1</FileType>
               <FilePath>..\..\User\Src\bsp_rot_encoder.c</FilePath>
             </File>
+            <File>
+              <FileName>bsp_i2c_light_sensor.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\User\Src\bsp_i2c_light_sensor.c</FilePath>
+            </File>
+            <File>
+              <FileName>bsp_i2c_oled.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\User\Src\bsp_i2c_oled.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

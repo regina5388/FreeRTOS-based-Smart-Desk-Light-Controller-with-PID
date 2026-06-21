@@ -2,6 +2,7 @@
 #define BSP_I2C_H
 
 #include "stm32f10x.h"
+#include <stdio.h>
 
 #define EEPROM_I2Cx                                I2C1
 #define EEPROM_I2C_APBxClock_FUN                   RCC_APB1PeriphClockCmd
@@ -24,14 +25,14 @@
  * This address is the STM32's own I2C address.
  * It must be different from any external I2C device address.
  */
-#define I2Cx_OWN_ADDRESS7      0X0A   
+#define I2Cx_OWN_ADDRESS      0X0A   
 
 /* AT24C01/02: 8 bytes per page */
 #define I2C_PageSize           8
 
 /* Turn debug print information on or off */
 #define EEPROM_DEBUG_ON         0
-
+#define I2C_DEBUG_ON            1
 /* Time out time */
 #define I2CT_FLAG_TIMEOUT         ((uint32_t)0x1000)
 #define I2CT_LONG_TIMEOUT         ((uint32_t)(10 * I2CT_FLAG_TIMEOUT))
@@ -74,12 +75,31 @@
         if(EEPROM_DEBUG_ON) \
             printf("<<-EEPROM-DEBUG->> [%d]" fmt "\n", __LINE__, ##arg); \
     }while(0)
+	
+	
+
+#define I2C_INFO(fmt,arg...) \
+    printf("<<-I2C-INFO->> " fmt "\n", ##arg)
+
+
+
+#define I2C_ERROR(fmt,arg...) \
+    printf("<<-I2C-ERROR->> " fmt "\n", ##arg)
+
+
+
+#define I2C_DEBUG(fmt, ...)                                      \
+    do {                                                         \
+        if (I2C_DEBUG_ON) {                                      \
+            printf("<<-I2C-DEBUG->> [%s:%d] " fmt "\r\n",        \
+                   __FILE__, __LINE__, ##__VA_ARGS__);           \
+        }                                                        \
+    } while (0)
 		
 		
-uint32_t I2C_EE_BufferRead(u8* pBuffer, u8 ReadAddr, u16 NumByteToRead); //u8 -> uint8_t
-void I2C_EE_BufferWrite(u8* pBuffer, u8 WriteAddr, u16 NumByteToWrite);
-uint32_t I2C_EE_PageWrite(u8* pBuffer, u8 WriteAddr, u8 NumByteToWrite); //u8 -> uint8_t
-uint32_t I2C_EE_ByteWrite(u8* pBuffer, u8 WriteAddr); //u8 -> uint8_t
+uint32_t BSP_I2C_WriteBytes(I2C_TypeDef *I2Cx, uint8_t dev_addr, const uint8_t *data, uint16_t len);
+uint32_t BSP_I2C_ReadBytes(I2C_TypeDef *I2Cx, uint8_t dev_addr, uint8_t *data, uint16_t len);
+	
 void I2C_GPIO_Config(void);
 
 

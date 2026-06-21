@@ -2,8 +2,11 @@
 
 static SystemState current_state = STATE_ERROR;
 
-static uint16_t current_lux = 0;
-static uint16_t target_lux = 500;
+#define LUX_MIN    50.0f
+#define LUX_MAX    80.0f
+
+static float current_lux = 0;
+static float target_lux = 500;
 
 static int16_t manual_brightness = 0;   // user-set brightness
 static int16_t current_brightness = 0;   // actual commanded PWM 0~100
@@ -27,7 +30,7 @@ void FSM_init(void)
 
 void FSM_run(EventBits_t r_event)
 {
-	BaseType_t xReturn = pdTRUE;
+	BaseType_t xReturn = pdFALSE;
 	
 	switch(current_state)
 	{
@@ -68,8 +71,22 @@ void FSM_run(EventBits_t r_event)
 			
 			if(xReturn == pdTRUE)
 			{
-					
-					current_brightness = current_lux;
+				/************lux measured is only 0-80, 80/65535 too small************/
+				current_brightness = 100 - (int16_t)(current_lux * 100.0f / 65535.0f);
+				
+				xSemaphoreTake(UART_MuxSem_Handle, portMAX_DELAY);
+				printf("Auto ! \r\n");
+				xSemaphoreGive(UART_MuxSem_Handle);
+				
+				if (current_brightness > LUX_MAX)
+				{
+					current_brightness = 100;
+				}
+
+				if (current_brightness < LUX_MIN)
+				{
+					current_brightness = 0;
+				}
 					//***********current_breghtness = pid(current_lux)***********//
 					xReturn = xQueueOverwrite( Brightness_Queue_Handle,
 									&current_brightness);
