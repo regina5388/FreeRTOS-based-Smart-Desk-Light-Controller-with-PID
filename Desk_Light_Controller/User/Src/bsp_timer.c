@@ -11,7 +11,10 @@ void TIM_RCC_Config(void)
     /* Enable TIM3 peripheral clock */
     TIM_APBxClock_FUN(TIM_CLK, ENABLE);
 
-    /* Enable LED GPIO peripheral clock */
+//    /* Enable LED GPIO peripheral clock */
+//    LED_GPIO_APBxClock_FUN(LEDEX_GPIO_CLK, ENABLE);
+	
+	   /* Enable LED GPIO peripheral clock */
     LED_GPIO_APBxClock_FUN(LED2_GPIO_CLK, ENABLE);
 }
 
@@ -30,6 +33,13 @@ void TIM_GPIO_Config(void)
     GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 
     GPIO_Init(LED2_GPIO_PORT, &GPIO_InitStructure);
+	
+//	    /* 2. Configure GPIO pin */
+//    GPIO_InitStructure.GPIO_Pin = LEDEX_GPIO_PIN;
+//    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
+//    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+
+//    GPIO_Init(LEDEX_GPIO_PORT, &GPIO_InitStructure);
 }
 
 /**
@@ -65,6 +75,7 @@ void TIM_Output_Config(void)
 
     /* Enable timer counter */
     TIM_Cmd(TIMx, ENABLE);
+	
 }
 
 

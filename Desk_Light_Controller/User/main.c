@@ -128,7 +128,7 @@ static void LED_Task(void* parameter)
 		if(xReturn != NULL)
 		{
 			xSemaphoreTake(UART_MuxSem_Handle, portMAX_DELAY);
-			printf("Receive Brightness ! \r\n");
+			printf("Receive Brightness ! %d\r\n", Brightness_buf);
 			xSemaphoreGive(UART_MuxSem_Handle);
 		}
 		
@@ -166,12 +166,12 @@ static void Sensor_Task(void* parameter)
 					xEventGroupSetBits(FSM_Event_Handle, SENSOR_UPDATE_EVENT);
 					
 					xSemaphoreTake(UART_MuxSem_Handle, portMAX_DELAY);
-					printf("Sent lux: %d lx\r\n", (uint16_t)lux);
+					printf("Sent lux: %f lx\r\n", lux);
 					xSemaphoreGive(UART_MuxSem_Handle);
 				}
 			
 			}
-			vTaskDelay(pdMS_TO_TICKS(180));		
+			vTaskDelay(pdMS_TO_TICKS(500));		
 		}
 		
 		else
@@ -326,7 +326,7 @@ static void AppTaskCreate_Task(void* parameter)
 		printf("Encoder Delta Queue succesfully created\r\n");
 	
 	Lux_Queue_Handle = xQueueCreate((UBaseType_t)QUEUE_LEN,
-									sizeof(uint16_t));
+									sizeof(float));
 	if(Lux_Queue_Handle != NULL)
 		printf("Lux Queue succesfully created\r\n");
 	

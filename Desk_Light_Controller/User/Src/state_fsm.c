@@ -54,6 +54,7 @@ void FSM_run(EventBits_t r_event)
 			
 			if (r_event & BUTTON_PRESSED_EVENT)
 			{
+				
 				current_state = STATE_MANUAL_CONTROL;
 				manual_brightness = current_brightness;
 			}
@@ -63,6 +64,10 @@ void FSM_run(EventBits_t r_event)
 				xReturn = xQueueReceive( Lux_Queue_Handle,
 									&current_lux,
 									0 );
+				
+				xSemaphoreTake(UART_MuxSem_Handle, portMAX_DELAY);
+				printf("Auto ! lux measured is  %f\r\n", current_lux);
+				xSemaphoreGive(UART_MuxSem_Handle);
 			}
 		
 			xSemaphoreTake(UART_MuxSem_Handle, portMAX_DELAY);
@@ -72,21 +77,19 @@ void FSM_run(EventBits_t r_event)
 			if(xReturn == pdTRUE)
 			{
 				/************lux measured is only 0-80, 80/65535 too small************/
-				current_brightness = 100 - (int16_t)(current_lux * 100.0f / 65535.0f);
+				current_brightness = 50;
 				
-				xSemaphoreTake(UART_MuxSem_Handle, portMAX_DELAY);
-				printf("Auto ! \r\n");
-				xSemaphoreGive(UART_MuxSem_Handle);
 				
-				if (current_brightness > LUX_MAX)
-				{
-					current_brightness = 100;
-				}
+				
+//				if (current_brightness > LUX_MAX)
+//				{
+//					current_brightness = 100;
+//				}
 
-				if (current_brightness < LUX_MIN)
-				{
-					current_brightness = 0;
-				}
+//				if (current_brightness < LUX_MIN)
+//				{
+//					current_brightness = 0;
+//				}
 					//***********current_breghtness = pid(current_lux)***********//
 					xReturn = xQueueOverwrite( Brightness_Queue_Handle,
 									&current_brightness);

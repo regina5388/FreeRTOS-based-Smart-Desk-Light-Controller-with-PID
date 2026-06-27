@@ -628,6 +628,11 @@
               <FileType>1</FileType>
               <FilePath>..\..\User\Src\bsp_i2c_oled.c</FilePath>
             </File>
+            <File>
+              <FileName>pid.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\User\Src\pid.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
