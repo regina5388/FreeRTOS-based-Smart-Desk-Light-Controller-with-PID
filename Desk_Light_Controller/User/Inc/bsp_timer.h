@@ -3,17 +3,19 @@
 
 #include "stm32f10x.h"
 
-//#define    TIM_APBxClock_FUN             RCC_APB1PeriphClockCmd
-//#define    TIMx                          TIM2
-//#define    TIM_CLK                       RCC_APB1Periph_TIM2
-//#define    TIM_OCxPRELOAD_FUN            TIM_OC3PreloadConfig
-//#define    TIM_OCxINIT_FUN               TIM_OC3Init
-
+//External
 #define    TIM_APBxClock_FUN             RCC_APB1PeriphClockCmd
-#define    TIMx                          TIM3
-#define    TIM_CLK                       RCC_APB1Periph_TIM3
+#define    TIMx                          TIM2
+#define    TIM_CLK                       RCC_APB1Periph_TIM2
 #define    TIM_OCxPRELOAD_FUN            TIM_OC3PreloadConfig
 #define    TIM_OCxINIT_FUN               TIM_OC3Init
+
+//Onboard
+//#define    TIM_APBxClock_FUN             RCC_APB1PeriphClockCmd
+//#define    TIMx                          TIM3
+//#define    TIM_CLK                       RCC_APB1Periph_TIM3
+//#define    TIM_OCxPRELOAD_FUN            TIM_OC3PreloadConfig
+//#define    TIM_OCxINIT_FUN               TIM_OC3Init
 
 
 #define    LED_GPIO_APBxClock_FUN        RCC_APB2PeriphClockCmd

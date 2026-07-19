@@ -37,7 +37,7 @@ void PID_Init(PID_TypeDef *pid,
 
 void PID_Reset(PID_TypeDef *pid, float initial_output);
 
-float PID_Update(PID_TypeDef *pid, float measured);
+float PID_Update(PID_TypeDef *pid, float measured, int delta_max, int delta_min);
 
 
 /* Runtime tuning functions using UART etc.*/ 

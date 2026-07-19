@@ -37,7 +37,7 @@ void PID_Init(PID_TypeDef *pid,
 }
 
 
-float PID_Update(PID_TypeDef *pid, float measured)
+float PID_Update(PID_TypeDef *pid, float measured, int delta_max, int delta_min)
 {
     float error;
     float p_term;
@@ -65,6 +65,10 @@ float PID_Update(PID_TypeDef *pid, float measured)
     d_term = pid->Kd * (error - pid->prev_error) / pid->dt;
 
     delta = p_term + i_term + d_term;
+	
+	delta = PID_Clamp(delta,
+                       delta_min,
+                       delta_max);
 
     output = pid->output + delta;
 

@@ -1,17 +1,20 @@
 #include "state_fsm.h"
+#include "pid.h"
 
 static SystemState current_state = STATE_ERROR;
 
-#define LUX_MIN    50.0f
-#define LUX_MAX    80.0f
+#define LUX_MIN    80.0f
+#define LUX_MAX    380.0f
 
 static float current_lux = 0;
-static float target_lux = 500;
+static float target_lux = 200;
 
 static int16_t manual_brightness = 0;   // user-set brightness
 static int16_t current_brightness = 0;   // actual commanded PWM 0~100
 
 static int16_t encoder_delta = 0;
+
+extern PID_TypeDef pid;
 
 extern SemaphoreHandle_t UART_MuxSem_Handle;
 extern QueueHandle_t Brightness_Queue_Handle;
@@ -36,6 +39,13 @@ void FSM_run(EventBits_t r_event)
 	{
 		case STATE_INIT:
 			current_state = STATE_IDLE;
+			PID_Init(&pid,
+					 0.5f,    // Kp
+					 0.0f,   // Ki
+					 0.0f,     // Kd
+					 0.5f,     // dt = 200 ms
+					 0.0f,    // min delta PWM per update
+					 100.0f);  // max delta PWM per update
 			break;
 		case STATE_SETF_TEST:
 			break;
@@ -43,6 +53,8 @@ void FSM_run(EventBits_t r_event)
 			if (r_event & BUTTON_PRESSED_EVENT)
 			{
 				current_state = STATE_AUTO_CONTROL;
+				PID_Reset(&pid, current_lux);
+				PID_SetTarget(&pid, target_lux);
 			}
 			
 			xSemaphoreTake(UART_MuxSem_Handle, portMAX_DELAY);
@@ -57,6 +69,7 @@ void FSM_run(EventBits_t r_event)
 				
 				current_state = STATE_MANUAL_CONTROL;
 				manual_brightness = current_brightness;
+				PID_Reset(&pid, current_lux);
 			}
 			
 			if (r_event & SENSOR_UPDATE_EVENT)
@@ -65,35 +78,19 @@ void FSM_run(EventBits_t r_event)
 									&current_lux,
 									0 );
 				
+				current_brightness = PID_Update(&pid, current_lux,30, -30);
+
+				
+				
+				xReturn = xQueueOverwrite( Brightness_Queue_Handle,
+									&current_brightness);
+				
+				
 				xSemaphoreTake(UART_MuxSem_Handle, portMAX_DELAY);
 				printf("Auto ! lux measured is  %f\r\n", current_lux);
 				xSemaphoreGive(UART_MuxSem_Handle);
 			}
-		
-			xSemaphoreTake(UART_MuxSem_Handle, portMAX_DELAY);
-			printf("Auto ! \r\n");
-			xSemaphoreGive(UART_MuxSem_Handle);
-			
-			if(xReturn == pdTRUE)
-			{
-				/************lux measured is only 0-80, 80/65535 too small************/
-				current_brightness = 50;
-				
-				
-				
-//				if (current_brightness > LUX_MAX)
-//				{
-//					current_brightness = 100;
-//				}
 
-//				if (current_brightness < LUX_MIN)
-//				{
-//					current_brightness = 0;
-//				}
-					//***********current_breghtness = pid(current_lux)***********//
-					xReturn = xQueueOverwrite( Brightness_Queue_Handle,
-									&current_brightness);
-			}
 			
 
 			
@@ -112,6 +109,9 @@ void FSM_run(EventBits_t r_event)
 				xSemaphoreTake(UART_MuxSem_Handle, portMAX_DELAY);
 				printf("Enter FOCUS, tick = %d\r\n", focus_start_tick);
 				xSemaphoreGive(UART_MuxSem_Handle);
+				
+				PID_Reset(&pid, current_lux);
+				PID_SetTarget(&pid, target_lux);
 				
 				
 			}
@@ -136,6 +136,7 @@ void FSM_run(EventBits_t r_event)
 						xReturn = xQueueOverwrite( Brightness_Queue_Handle,
 										&current_brightness);
 				}
+				
 				
 				xSemaphoreTake(UART_MuxSem_Handle, portMAX_DELAY);
 				printf("delta=%d\r\n", encoder_delta);

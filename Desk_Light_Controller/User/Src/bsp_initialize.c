@@ -13,4 +13,5 @@ void BSP_Init(void)
 	RotEncoder_Config();
 	FSM_init();
 	I2C_GPIO_Config();
+	
 }

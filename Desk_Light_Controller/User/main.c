@@ -69,6 +69,8 @@ static void FSM_Task(void* parameter);
 static void AppTaskCreate_Task(void* parameter);
 static void FocusTimer_SWTimer_Callback(void *parameter);
 static void BreakTimer_SWTimer_Callback(void *parameter);
+
+PID_TypeDef pid;
 	
 int main(void)
 {
@@ -271,7 +273,7 @@ static void FSM_Task(void* parameter)
 									   portMAX_DELAY );
 		FSM_run(r_event);
 			
-		vTaskDelay(pdMS_TO_TICKS(10));
+		vTaskDelay(pdMS_TO_TICKS(20));
 	}
 }
 
