@@ -11,6 +11,7 @@ static float target_lux = 200;
 
 static int16_t manual_brightness = 0;   // user-set brightness
 static int16_t current_brightness = 0;   // actual commanded PWM 0~100
+static uint16_t off_brightness = 0;
 
 static int16_t encoder_delta = 0;
 
@@ -34,6 +35,7 @@ void FSM_init(void)
 void FSM_run(EventBits_t r_event)
 {
 	BaseType_t xReturn = pdFALSE;
+	uint8_t blink_time;
 	
 	switch(current_state)
 	{
@@ -145,14 +147,13 @@ void FSM_run(EventBits_t r_event)
 			
 			break;
 		case STATE_FOCUS:
-			//Add pid logic afterwards?
-			
 			
 		
 			if (r_event & BUTTON_PRESSED_EVENT)
 			{
 				current_state = STATE_AUTO_CONTROL;
 				xTimerStop(FocusTimer_SWTimer_Handle, 0);
+				break;
 			}
 			
 				xSemaphoreTake(UART_MuxSem_Handle, portMAX_DELAY);
@@ -169,20 +170,32 @@ void FSM_run(EventBits_t r_event)
 				xTimerStop(FocusTimer_SWTimer_Handle, 0);
 				xTimerReset(BreakTimer_SWTimer_Handle, 0);
 				
+				
+				
 				xSemaphoreTake(UART_MuxSem_Handle, portMAX_DELAY);
 				printf("Enter BREAK, tick = %d\r\n", break_start_tick);
 				xSemaphoreGive(UART_MuxSem_Handle);
-				//Blink Lights for hints
+				
+
 			}
 		
 			break;
 		
 		case STATE_BREAK:
-			//Add pid logic afterwards?
+			
+			xReturn = xQueueOverwrite( Brightness_Queue_Handle,
+									&off_brightness);
+			
+			vTaskDelay(pdMS_TO_TICKS(1*1000U));
+		
+			xReturn = xQueueOverwrite( Brightness_Queue_Handle,
+									&current_brightness);
+		
 			if (r_event & BUTTON_PRESSED_EVENT)
 			{
 				current_state = STATE_AUTO_CONTROL;
 				xTimerStop(BreakTimer_SWTimer_Handle, 0);
+				break;
 
 			}
 			

@@ -2,7 +2,7 @@
 
 #define QUEUE_LEN 		(1)
 
-#define FOCUS_TIME_MS 	(25UL * 1000UL)
+#define FOCUS_TIME_MS 	(10UL * 1000UL)
 #define BREAK_TIME_MS 	(5UL * 1000UL)
 
 
@@ -127,6 +127,10 @@ static void LED_Task(void* parameter)
 		xReturn = xQueueReceive( Brightness_Queue_Handle,
 							  &Brightness_buf,
 							  0);
+		
+		Set_DutyCycle_LED(Brightness_buf);
+		vTaskDelay(pdMS_TO_TICKS(20));
+		
 		if(xReturn != NULL)
 		{
 			xSemaphoreTake(UART_MuxSem_Handle, portMAX_DELAY);
@@ -134,8 +138,7 @@ static void LED_Task(void* parameter)
 			xSemaphoreGive(UART_MuxSem_Handle);
 		}
 		
-		Set_DutyCycle_LED(Brightness_buf);
-		vTaskDelay(pdMS_TO_TICKS(20));
+		
 	}
 	
 }
